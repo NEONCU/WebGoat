@@ -1,4 +1,4 @@
-name: Kubernetes K8s Deployment
+name: Kubernetes Deployment Pipeline
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
 
     steps:
       # Step 1: Checkout the repository
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       # Step 2: Set up Kubernetes Context
@@ -21,20 +21,35 @@ jobs:
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
 
-      # Step 3: Install Ansible
-      - name: Install Ansible
+      # Step 3: Debug Kubernetes Configuration
+      - name: Debug Kubernetes Config
         run: |
-          sudo apt update
-          sudo apt install -y ansible
+          echo "Debugging Kubernetes Config"
+          cat ~/.kube/config
+          kubectl config view
+          kubectl cluster-info
+          kubectl get nodes || echo "Unable to get nodes - check connectivity"
 
-      # Step 4: Run the Ansible playbook
-      - name: Deploy to Kubernetes
+      # Step 4: Validate Deployment File
+      - name: Validate Deployment File Locally
         run: |
-          ansible-playbook deploy-playbook.yml
+          kubectl apply --dry-run=client -f deployment.yaml
 
-      # Step 5: Verify Deployment
-      - name: Test Deployment
+      # Step 5: Apply Deployment Configuration
+      - name: Apply Deployment to Kubernetes
         run: |
+          kubectl apply --validate=false -f deployment.yaml
+
+      # Step 6: Verify Deployment
+      - name: Verify Deployment Status
+        run: |
+          echo "Checking Pods and Services"
           kubectl get pods
           kubectl get svc
+
+      # Step 7: Post-Deployment Debugging
+      - name: Fetch Logs from Pods
+        run: |
+          kubectl get pods -o name | xargs -I {} kubectl logs {}
