@@ -1,0 +1,34 @@
+name: Kubernetes Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Kubernetes Context
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Deploy to Kubernetes with Ansible
+        run: |
+          ansible-playbook deploy-playbook.yml
+
+      - name: Test Deployment
+        run: |
+          kubectl get pods
+          kubectl get svc webgoat-service

@@ -1,0 +1,8 @@
+- name: Deploy WebGoat to Kubernetes
+  hosts: localhost
+  tasks:
+    - name: Apply Deployment Configuration
+      command: kubectl apply -f deployment.yaml
+
+    - name: Apply Service Configuration
+      command: kubectl apply -f service.yaml
