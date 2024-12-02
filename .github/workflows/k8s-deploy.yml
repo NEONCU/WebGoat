@@ -10,27 +10,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Set up Kubernetes Context
       - name: Set up Kubernetes Context
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
         run: |
+          mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
 
+      # Step 3: Install Ansible
       - name: Install Ansible
         run: |
           sudo apt update
           sudo apt install -y ansible
 
-      - name: Deploy to Kubernetes with Ansible
+      # Step 4: Run the Ansible playbook
+      - name: Deploy to Kubernetes
         run: |
           ansible-playbook deploy-playbook.yml
 
+      # Step 5: Verify Deployment
       - name: Test Deployment
         run: |
           kubectl get pods
-          kubectl get svc webgoat-service
-
-      
+          kubectl get svc
