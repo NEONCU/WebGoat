@@ -1,55 +1,40 @@
-name: Kubernetes Deployment Pipeline
+name: Deploy to Kubernetes
 
 on:
   push:
     branches:
-      - main
+      - main  # Déclencher sur les commits de la branche main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      # Étape 1 : Récupération du code source
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Step 2: Set up Kubernetes Context
-      - name: Set up Kubernetes Context
+      # Étape 2 : Build et push de l'image Docker
+      - name: Log in to Docker Hub
+        run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+      
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/webgoat:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/webgoat:latest
+
+      # Étape 3 : Configurer Kubernetes avec Ansible
+      - name: Install Ansible
+        run: sudo apt update && sudo apt install -y ansible
+
+      - name: Deploy application to Kubernetes
         env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}  # Utilise le kubeconfig fourni comme secret
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-          chmod 600 ~/.kube/config
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
 
-      # Step 3: Debug Kubernetes Configuration
-      - name: Debug Kubernetes Config
+      # Étape 4 : Tester le déploiement
+      - name: Test deployment
         run: |
-          echo "Debugging Kubernetes Config"
-          cat ~/.kube/config
-          kubectl config view
-          kubectl cluster-info
-          kubectl get nodes || echo "Unable to get nodes - check connectivity"
-
-      # Step 4: Validate Deployment File
-      - name: Validate Deployment File Locally
-        run: |
-          kubectl apply --dry-run=client -f deployment.yaml
-
-      # Step 5: Apply Deployment Configuration
-      - name: Apply Deployment to Kubernetes
-        run: |
-          kubectl apply --validate=false -f deployment.yaml
-
-      # Step 6: Verify Deployment
-      - name: Verify Deployment Status
-        run: |
-          echo "Checking Pods and Services"
           kubectl get pods
-          kubectl get svc
-
-      # Step 7: Post-Deployment Debugging
-      - name: Fetch Logs from Pods
-        run: |
-          kubectl get pods -o name | xargs -I {} kubectl logs {}
+          kubectl get services
