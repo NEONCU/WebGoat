@@ -1,27 +1,16 @@
 ---
-- name: Configure WebGoat Cluster
-  hosts: local
-  tasks:
-      - name: Create WebGoat namespace
-        command: kubectl create namespace webgoat
-        ignore_errors: true
-
-      - name: Apply Resource Quota for WebGoat
-        command: kubectl apply -f resource_quota.yml
-        ignore_errors: true
-
-      - name: Apply Network Policy for WebGoat
-        command: kubectl apply -f network_policy.yml
-        ignore_errors: true
-
-      - name: Create Service Account for WebGoat
-        command: kubectl create serviceaccount webgoat-sa -n webgoat
-        ignore_errors: true
-
-      - name: Apply Deployment for WebGoat
-        command: kubectl apply -f deployment.yml
-        ignore_errors: true
-
-      - name: Apply Service for WebGoat
-        command: kubectl apply -f service_account.yml
-        ignore_errors: true
+  - name: Configure and deploy application
+    hosts: webservers
+    become: true
+  
+    tasks:
+      - name: Install Docker
+        apt:
+          name: docker.io
+          state: present
+  
+      - name: Deploy application
+        copy:
+          src: ../../src
+          dest: /var/www/myapp
+  

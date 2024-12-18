@@ -1,35 +1,35 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-    name: webgoat
-    namespace: webgoat
-spec:
-    replicas: 1
-    selector:
-        matchLabels:
-            app: webgoat
-    template:
-        metadata:
-            labels:
-                app: webgoat
-        spec:
-            serviceAccountName: webgoat-sa
-            containers:
-                - name: webgoat
-                  image: yelghom/webgoat:latest
-                  ports:
-                      - containerPort: 8080
-                        name: http
-                  resources:
-                      requests:
-                          memory: "512Mi"
-                          cpu: "500m"
-                      limits:
-                          memory: "1Gi"
-                          cpu: "1"
-                  startupProbe:
-                      tcpSocket:
-                          port: 8080
-                      initialDelaySeconds: 60
-                      periodSeconds: 10
-                      failureThreshold: 30
+name: Azure VM Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up SSH for accessing the Azure VM
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      # Install Ansible
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      # Deploy with Ansible on Azure VM
+      - name: Deploy with Ansible
+        run: |
+          ansible-playbook -i ansible/hosts.ini ansible/configure_cluster.yml
